@@ -1,0 +1,20 @@
+{
+    "name": "reloop-labs/reloop-php",
+    "description": "Reloop PHP SDK",
+    "type": "library",
+    "require": {
+        "php": "^8.1",
+        "guzzlehttp/guzzle": "^7.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "Reloop\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Reloop Labs"
+        }
+    ],
+    "minimum-stability": "stable"
+}
