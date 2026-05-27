@@ -22,7 +22,7 @@ class ApiKeyService
      */
     public function create(array $params): array
     {
-        return $this->client->request('POST', '/api-key/v1/', [
+        return $this->client->request('POST', '/api/api-key/v1/', [
             RequestOptions::JSON => $params,
         ]);
     }
@@ -35,7 +35,7 @@ class ApiKeyService
      */
     public function list(array $params = []): array
     {
-        return $this->client->request('GET', '/api-key/v1/', [
+        return $this->client->request('GET', '/api/api-key/v1/', [
             RequestOptions::QUERY => $params,
         ]);
     }
@@ -48,7 +48,7 @@ class ApiKeyService
      */
     public function get(string $id): array
     {
-        return $this->client->request('GET', "/api-key/v1/{$id}");
+        return $this->client->request('GET', "/api/api-key/v1/{$id}");
     }
 
     /**
@@ -60,7 +60,7 @@ class ApiKeyService
      */
     public function update(string $id, array $params): array
     {
-        return $this->client->request('PATCH', "/api-key/v1/{$id}", [
+        return $this->client->request('PATCH', "/api/api-key/v1/{$id}", [
             RequestOptions::JSON => $params,
         ]);
     }
@@ -73,7 +73,7 @@ class ApiKeyService
      */
     public function delete(string $id): array
     {
-        return $this->client->request('DELETE', "/api-key/v1/{$id}");
+        return $this->client->request('DELETE', "/api/api-key/v1/{$id}");
     }
 
     /**
@@ -84,7 +84,7 @@ class ApiKeyService
      */
     public function rotate(string $id): array
     {
-        return $this->client->request('POST', "/api-key/v1/rotate/{$id}");
+        return $this->client->request('POST', "/api/api-key/v1/rotate/{$id}");
     }
 
     /**
@@ -95,7 +95,7 @@ class ApiKeyService
      */
     public function enable(string $id): array
     {
-        return $this->client->request('POST', "/api-key/v1/enable/{$id}");
+        return $this->client->request('POST', "/api/api-key/v1/enable/{$id}");
     }
 
     /**
@@ -106,6 +106,6 @@ class ApiKeyService
      */
     public function disable(string $id): array
     {
-        return $this->client->request('POST', "/api-key/v1/disable/{$id}");
+        return $this->client->request('POST', "/api/api-key/v1/disable/{$id}");
     }
 }
