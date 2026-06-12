@@ -12,6 +12,14 @@ class Reloop
     private ReloopClient $client;
 
     /**
+     * Create a new Reloop client with the given API key.
+     */
+    public static function client(string $apiKey, string $baseUrl = 'https://reloop.sh'): self
+    {
+        return new self($apiKey, $baseUrl);
+    }
+
+    /**
      * Initialize the Reloop SDK
      *
      * @param string $apiKey Your API key

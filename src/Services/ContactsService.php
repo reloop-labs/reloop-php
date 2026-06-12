@@ -3,29 +3,15 @@
 namespace Reloop\Services;
 
 use GuzzleHttp\RequestOptions;
-use Reloop\Dto\Dto;
-use Reloop\Dto\Request\CreateContactParams;
-use Reloop\Dto\Request\CreateGroupParams;
-use Reloop\Dto\Request\CreatePropertyParams;
-use Reloop\Dto\Request\ListContactsParams;
-use Reloop\Dto\Request\ListGroupsParams;
-use Reloop\Dto\Request\ListPropertiesParams;
-use Reloop\Dto\Request\UpdateContactParams;
-use Reloop\Dto\Request\UpdateGroupParams;
-use Reloop\Dto\Request\UpdatePropertyParams;
-use Reloop\Dto\Response\Contact;
-use Reloop\Dto\Response\ContactGroup;
-use Reloop\Dto\Response\ContactGroupResponse;
-use Reloop\Dto\Response\ContactListResponse;
-use Reloop\Dto\Response\ContactPropertyResponse;
-use Reloop\Dto\Response\ContactResponse;
-use Reloop\Dto\Response\DeleteContactResponse;
-use Reloop\Dto\Response\DeleteGroupResponse;
-use Reloop\Dto\Response\DeletePropertyResponse;
-use Reloop\Dto\Response\GroupContactListResponse;
-use Reloop\Dto\Response\GroupListResponse;
-use Reloop\Dto\Response\PropertyListResponse;
+use Reloop\Contact;
+use Reloop\ContactGroup;
+use Reloop\ContactList;
+use Reloop\ContactProperty;
+use Reloop\GroupList;
+use Reloop\PropertyList;
 use Reloop\ReloopClient;
+use Reloop\Support\Parameters;
+use Reloop\Support\ResourceFactory;
 
 class ContactsService
 {
@@ -38,135 +24,133 @@ class ContactsService
         $this->channels = new ContactChannelsService($client);
     }
 
-    public function create(CreateContactParams|array $params): ContactResponse
+    public function create(array $parameters): Contact
     {
         $data = $this->client->request('POST', '/api/contacts/create', [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return ContactResponse::fromArray($data);
+        return ResourceFactory::contact($data);
     }
 
     public function get(string $contactId): Contact
     {
         $data = $this->client->request('GET', "/api/contacts/retrieve/{$contactId}");
 
-        return Contact::fromArray($data);
+        return ResourceFactory::contact($data);
     }
 
-    public function list(ListContactsParams|array $params = []): ContactListResponse|GroupContactListResponse
+    public function list(array $options = []): ContactList|ContactGroup
     {
-        $payload = Dto::query($params);
+        $query = Parameters::forQuery($options);
 
-        if (isset($payload['groupId'])) {
-            $groupId = $payload['groupId'];
-            unset($payload['groupId']);
+        if (isset($query['groupId'])) {
+            $groupId = $query['groupId'];
+            unset($query['groupId']);
 
-            return $this->groups->listContacts($groupId, $payload);
+            return $this->groups->listContacts($groupId, $query);
         }
 
         $data = $this->client->request('GET', '/api/contacts/list', [
-            RequestOptions::QUERY => $payload,
+            RequestOptions::QUERY => $query,
         ]);
 
-        return ContactListResponse::fromArray($data);
+        return ResourceFactory::contactList($data);
     }
 
-    public function update(string $contactId, UpdateContactParams|array $params): ContactResponse
+    public function update(string $contactId, array $parameters): Contact
     {
         $data = $this->client->request('PATCH', "/api/contacts/{$contactId}", [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return ContactResponse::fromArray($data);
+        return ResourceFactory::contact($data);
     }
 
-    public function delete(string $contactId): DeleteContactResponse
+    public function delete(string $contactId): Contact
     {
         $data = $this->client->request('DELETE', "/api/contacts/{$contactId}");
 
-        return DeleteContactResponse::fromArray($data);
+        return ResourceFactory::contact($data);
     }
 
-    public function createProperty(CreatePropertyParams|array $params): ContactPropertyResponse
+    public function createProperty(array $parameters): ContactProperty
     {
         $data = $this->client->request('POST', '/api/contacts/v1/properties/create', [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return ContactPropertyResponse::fromArray($data);
+        return ResourceFactory::contactProperty($data);
     }
 
-    public function listProperties(ListPropertiesParams|array $params = []): PropertyListResponse
+    public function listProperties(array $options = []): PropertyList
     {
         $data = $this->client->request('GET', '/api/contacts/v1/properties/list', [
-            RequestOptions::QUERY => Dto::query($params),
+            RequestOptions::QUERY => Parameters::forQuery($options),
         ]);
 
-        return PropertyListResponse::fromArray($data);
+        return ResourceFactory::propertyList($data);
     }
 
-    public function updateProperty(
-        string $propertyId,
-        UpdatePropertyParams|array $params,
-    ): ContactPropertyResponse {
+    public function updateProperty(string $propertyId, array $parameters): ContactProperty
+    {
         $data = $this->client->request(
             'PATCH',
             "/api/contacts/v1/properties/{$propertyId}",
-            [RequestOptions::JSON => Dto::body($params)],
+            [RequestOptions::JSON => Parameters::forRequest($parameters)],
         );
 
-        return ContactPropertyResponse::fromArray($data);
+        return ResourceFactory::contactProperty($data);
     }
 
-    public function deleteProperty(string $propertyId): DeletePropertyResponse
+    public function deleteProperty(string $propertyId): ContactProperty
     {
         $data = $this->client->request(
             'DELETE',
             "/api/contacts/v1/properties/{$propertyId}",
         );
 
-        return DeletePropertyResponse::fromArray($data);
+        return ResourceFactory::contactProperty($data);
     }
 
-    public function createGroup(CreateGroupParams|array $params): ContactGroupResponse
+    public function createGroup(array $parameters): ContactGroup
     {
         $data = $this->client->request('POST', '/api/contacts/v1/groups/create', [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return ContactGroupResponse::fromArray($data);
+        return ResourceFactory::contactGroup($data);
     }
 
-    public function listGroups(ListGroupsParams|array $params = []): GroupListResponse
+    public function listGroups(array $options = []): GroupList
     {
         $data = $this->client->request('GET', '/api/contacts/v1/groups/list', [
-            RequestOptions::QUERY => Dto::query($params),
+            RequestOptions::QUERY => Parameters::forQuery($options),
         ]);
 
-        return GroupListResponse::fromArray($data);
+        return ResourceFactory::groupList($data);
     }
 
     public function getGroup(string $groupId): ContactGroup
     {
         $data = $this->client->request('GET', "/api/contacts/v1/groups/{$groupId}");
 
-        return ContactGroup::fromArray($data);
+        return ResourceFactory::contactGroup($data);
     }
 
-    public function updateGroup(string $groupId, UpdateGroupParams|array $params): ContactGroupResponse
+    public function updateGroup(string $groupId, array $parameters): ContactGroup
     {
         $data = $this->client->request('PATCH', "/api/contacts/v1/groups/{$groupId}", [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return ContactGroupResponse::fromArray($data);
+        return ResourceFactory::contactGroup($data);
     }
 
-    public function deleteGroup(string $groupId): DeleteGroupResponse
+    public function deleteGroup(string $groupId): ContactGroup
     {
         $data = $this->client->request('DELETE', "/api/contacts/v1/groups/{$groupId}");
 
-        return DeleteGroupResponse::fromArray($data);
+        return ResourceFactory::contactGroup($data);
     }
 }

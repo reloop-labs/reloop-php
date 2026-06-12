@@ -3,19 +3,11 @@
 namespace Reloop\Services;
 
 use GuzzleHttp\RequestOptions;
-use Reloop\Dto\Dto;
-use Reloop\Dto\Request\AddContactToChannelParams;
-use Reloop\Dto\Request\CreateChannelParams;
-use Reloop\Dto\Request\ListChannelsParams;
-use Reloop\Dto\Request\UpdateChannelParams;
-use Reloop\Dto\Request\UpdateContactChannelParams;
-use Reloop\Dto\Response\AddContactToChannelResponse;
-use Reloop\Dto\Response\ChannelListResponse;
-use Reloop\Dto\Response\ContactChannel;
-use Reloop\Dto\Response\ContactChannelResponse;
-use Reloop\Dto\Response\DeleteChannelResponse;
-use Reloop\Dto\Response\UpdateContactChannelResponse;
+use Reloop\ChannelList;
+use Reloop\ContactChannel;
 use Reloop\ReloopClient;
+use Reloop\Support\Parameters;
+use Reloop\Support\ResourceFactory;
 
 class ContactChannelsService
 {
@@ -23,64 +15,62 @@ class ContactChannelsService
     {
     }
 
-    public function create(CreateChannelParams|array $params): ContactChannelResponse
+    public function create(array $parameters): ContactChannel
     {
         $data = $this->client->request('POST', '/api/contacts/v1/channels/create', [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return ContactChannelResponse::fromArray($data);
+        return ResourceFactory::contactChannel($data);
     }
 
-    public function list(ListChannelsParams|array $params = []): ChannelListResponse
+    public function list(array $options = []): ChannelList
     {
         $data = $this->client->request('GET', '/api/contacts/v1/channels/list', [
-            RequestOptions::QUERY => Dto::query($params),
+            RequestOptions::QUERY => Parameters::forQuery($options),
         ]);
 
-        return ChannelListResponse::fromArray($data);
+        return ResourceFactory::channelList($data);
     }
 
     public function get(string $channelId): ContactChannel
     {
         $data = $this->client->request('GET', "/api/contacts/v1/channels/{$channelId}");
 
-        return ContactChannel::fromArray($data);
+        return ResourceFactory::contactChannel($data);
     }
 
-    public function update(string $channelId, UpdateChannelParams|array $params): ContactChannelResponse
+    public function update(string $channelId, array $parameters): ContactChannel
     {
         $data = $this->client->request('PATCH', "/api/contacts/v1/channels/{$channelId}", [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return ContactChannelResponse::fromArray($data);
+        return ResourceFactory::contactChannel($data);
     }
 
-    public function delete(string $channelId): DeleteChannelResponse
+    public function delete(string $channelId): ContactChannel
     {
         $data = $this->client->request('DELETE', "/api/contacts/v1/channels/{$channelId}");
 
-        return DeleteChannelResponse::fromArray($data);
+        return ResourceFactory::contactChannel($data);
     }
 
-    public function addContact(string $channelId, AddContactToChannelParams|array $params): AddContactToChannelResponse
+    public function addContact(string $channelId, array $parameters): ContactChannel
     {
         $data = $this->client->request('POST', "/api/contacts/channel/{$channelId}", [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return AddContactToChannelResponse::fromArray($data);
+        return ResourceFactory::contactChannel($data);
     }
 
-    public function updateSubscription(
-        string $channelId,
-        UpdateContactChannelParams|array $params,
-    ): UpdateContactChannelResponse {
+    public function updateSubscription(string $channelId, array $parameters): ContactChannel
+    {
         $data = $this->client->request('PATCH', "/api/contacts/channel/{$channelId}", [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return UpdateContactChannelResponse::fromArray($data);
+        return ResourceFactory::contactChannel($data);
     }
 }

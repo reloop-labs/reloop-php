@@ -3,13 +3,11 @@
 namespace Reloop\Services;
 
 use GuzzleHttp\RequestOptions;
-use Reloop\Dto\Dto;
-use Reloop\Dto\Request\AddContactToGroupParams;
-use Reloop\Dto\Request\ListContactsParams;
-use Reloop\Dto\Request\RemoveContactFromGroupParams;
-use Reloop\Dto\Response\ContactMutationResponse;
-use Reloop\Dto\Response\GroupContactListResponse;
+use Reloop\Contact;
+use Reloop\ContactGroup;
 use Reloop\ReloopClient;
+use Reloop\Support\Parameters;
+use Reloop\Support\ResourceFactory;
 
 class ContactGroupsService
 {
@@ -17,34 +15,32 @@ class ContactGroupsService
     {
     }
 
-    public function addContact(string $groupId, AddContactToGroupParams|array $params): ContactMutationResponse
+    public function addContact(string $groupId, array $parameters): Contact
     {
         $data = $this->client->request('POST', "/api/contacts/group/{$groupId}", [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return ContactMutationResponse::fromArray($data);
+        return ResourceFactory::contact($data);
     }
 
-    public function removeContact(string $groupId, RemoveContactFromGroupParams|array $params): ContactMutationResponse
+    public function removeContact(string $groupId, array $parameters): Contact
     {
         $data = $this->client->request('DELETE', "/api/contacts/group/{$groupId}", [
-            RequestOptions::JSON => Dto::body($params),
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
 
-        return ContactMutationResponse::fromArray($data);
+        return ResourceFactory::contact($data);
     }
 
-    public function listContacts(
-        string $groupId,
-        ListContactsParams|array $params = [],
-    ): GroupContactListResponse {
+    public function listContacts(string $groupId, array $options = []): ContactGroup
+    {
         $data = $this->client->request(
             'GET',
             "/api/contacts/v1/groups/{$groupId}/contacts",
-            [RequestOptions::QUERY => Dto::query($params)],
+            [RequestOptions::QUERY => Parameters::forQuery($options)],
         );
 
-        return GroupContactListResponse::fromArray($data);
+        return ResourceFactory::contactGroup($data);
     }
 }

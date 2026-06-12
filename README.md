@@ -23,7 +23,7 @@ require_once 'vendor/autoload.php';
 
 use Reloop\Reloop;
 
-$reloop = new Reloop('rl_your_api_key_here');
+$reloop = Reloop::client('rl_your_api_key_here');
 ```
 
 ## API Key Management
@@ -72,47 +72,72 @@ $reloop->apiKeys->enable('api_key_id_here');
 
 ## Contacts
 
-Manage contacts, custom properties, groups, and channels via `$reloop->contacts`. All contact methods accept typed DTO classes (recommended) or plain arrays, and return typed response objects for full IDE autocomplete.
+Manage contacts, custom properties, groups, and channels via `$reloop->contacts`. Methods accept snake_case `parameters` and `options` arrays and return typed resource objects with snake_case properties.
 
 ### Create a contact
 
 ```php
-use Reloop\Dto\Enum\ContactStatus;
-use Reloop\Dto\Request\CreateContactParams;
+$reloop = Reloop::client('re_123456789');
 
-$contact = $reloop->contacts->create(new CreateContactParams(
-    email: 'john.doe@example.com',
-    firstName: 'John',
-    lastName: 'Doe',
-    status: ContactStatus::Subscribed,
-    properties: ['company_name' => 'Acme'],
-    groupIds: ['grp_123456789'],
-));
+$contact = $reloop->contacts->create(
+    parameters: [
+        'email' => 'steve.wozniak@gmail.com',
+        'first_name' => 'Steve',
+        'last_name' => 'Wozniak',
+        'unsubscribed' => false,
+        'properties' => [
+            'company' => 'Reloop',
+        ],
+        'group_ids' => ['grp_123456789'],
+    ],
+);
 
 echo $contact->id;
 echo $contact->email;
-echo $contact->event;
+echo $contact->first_name;
+```
+
+You can also pass Reloop-specific fields directly:
+
+```php
+$contact = $reloop->contacts->create(
+    parameters: [
+        'email' => 'john.doe@example.com',
+        'first_name' => 'John',
+        'last_name' => 'Doe',
+        'status' => 'subscribed',
+        'channels' => [
+            [
+                'channel_id' => 'chn_123456789',
+                'subscription' => 'opt_in',
+            ],
+        ],
+    ],
+);
 ```
 
 ### List, get, update, and delete contacts
 
 ```php
-use Reloop\Dto\Enum\ContactStatus;
-use Reloop\Dto\Request\ListContactsParams;
-use Reloop\Dto\Request\UpdateContactParams;
+$list = $reloop->contacts->list(options: [
+    'page' => 1,
+    'limit' => 10,
+]);
 
-$list = $reloop->contacts->list(new ListContactsParams(page: 1, limit: 10));
 foreach ($list->contacts as $contact) {
     echo $contact->email;
 }
 
 $contact = $reloop->contacts->get('cont_123456789');
-echo $contact->firstName;
+echo $contact->first_name;
 
-$updated = $reloop->contacts->update('cont_123456789', new UpdateContactParams(
-    firstName: 'Jane',
-    status: ContactStatus::Subscribed,
-));
+$updated = $reloop->contacts->update(
+    'cont_123456789',
+    parameters: [
+        'first_name' => 'Jane',
+        'unsubscribed' => false,
+    ],
+);
 
 $result = $reloop->contacts->delete('cont_123456789');
 echo $result->success;
@@ -121,81 +146,99 @@ echo $result->success;
 ### Custom properties
 
 ```php
-use Reloop\Dto\Enum\PropertyType;
-use Reloop\Dto\Request\CreatePropertyParams;
-use Reloop\Dto\Request\ListPropertiesParams;
-use Reloop\Dto\Request\UpdatePropertyParams;
+$property = $reloop->contacts->createProperty(
+    parameters: [
+        'name' => 'company_name',
+        'type' => 'string',
+        'fallback_value' => 'Unknown',
+    ],
+);
 
-$property = $reloop->contacts->createProperty(new CreatePropertyParams(
-    name: 'company_name',
-    type: PropertyType::String,
-    fallbackValue: 'Unknown',
-));
+$properties = $reloop->contacts->listProperties(options: [
+    'page' => 1,
+    'limit' => 10,
+]);
 
-$properties = $reloop->contacts->listProperties(new ListPropertiesParams(page: 1, limit: 10));
 $updatedProperty = $reloop->contacts->updateProperty(
     'prop_123456789',
-    new UpdatePropertyParams(fallbackValue: 'N/A'),
+    parameters: [
+        'fallback_value' => 'N/A',
+    ],
 );
+
 $reloop->contacts->deleteProperty('prop_123456789');
 ```
 
 ### Groups
 
 ```php
-use Reloop\Dto\Request\AddContactToGroupParams;
-use Reloop\Dto\Request\CreateGroupParams;
-use Reloop\Dto\Request\ListGroupsParams;
-use Reloop\Dto\Request\RemoveContactFromGroupParams;
-use Reloop\Dto\Request\UpdateGroupParams;
+$group = $reloop->contacts->createGroup(
+    parameters: ['name' => 'Beta Testers'],
+);
 
-$group = $reloop->contacts->createGroup(new CreateGroupParams(name: 'Beta Testers'));
-$groups = $reloop->contacts->listGroups(new ListGroupsParams(page: 1, limit: 10));
+$groups = $reloop->contacts->listGroups(options: [
+    'page' => 1,
+    'limit' => 10,
+]);
+
 $oneGroup = $reloop->contacts->getGroup('grp_123456789');
-$updatedGroup = $reloop->contacts->updateGroup('grp_123456789', new UpdateGroupParams(name: 'Early Access'));
+$updatedGroup = $reloop->contacts->updateGroup(
+    'grp_123456789',
+    parameters: ['name' => 'Early Access'],
+);
 $reloop->contacts->deleteGroup('grp_123456789');
 
-$reloop->contacts->groups->addContact('grp_123456789', new AddContactToGroupParams(
-    contact_id: 'cont_123456789',
-));
-$reloop->contacts->groups->removeContact('grp_123456789', new RemoveContactFromGroupParams(
-    email: 'john.doe@example.com',
-));
-$groupContacts = $reloop->contacts->groups->listContacts('grp_123456789', ['page' => 1, 'limit' => 10]);
+$reloop->contacts->groups->addContact(
+    'grp_123456789',
+    parameters: ['contact_id' => 'cont_123456789'],
+);
+$reloop->contacts->groups->removeContact(
+    'grp_123456789',
+    parameters: ['email' => 'john.doe@example.com'],
+);
+$groupContacts = $reloop->contacts->groups->listContacts(
+    'grp_123456789',
+    options: ['page' => 1, 'limit' => 10],
+);
 ```
 
 ### Channels
 
 ```php
-use Reloop\Dto\Enum\ChannelVisibility;
-use Reloop\Dto\Enum\SubscriptionStatus;
-use Reloop\Dto\Request\AddContactToChannelParams;
-use Reloop\Dto\Request\CreateChannelParams;
-use Reloop\Dto\Request\ListChannelsParams;
-use Reloop\Dto\Request\UpdateChannelParams;
-use Reloop\Dto\Request\UpdateContactChannelParams;
+$channel = $reloop->contacts->channels->create(
+    parameters: [
+        'name' => 'Product Updates',
+        'default_subscription' => 'opt_in',
+        'visibility' => 'public',
+    ],
+);
 
-$channel = $reloop->contacts->channels->create(new CreateChannelParams(
-    name: 'Product Updates',
-    defaultSubscription: SubscriptionStatus::OptIn,
-    visibility: ChannelVisibility::Public,
-));
+$channels = $reloop->contacts->channels->list(options: [
+    'page' => 1,
+    'limit' => 10,
+]);
 
-$channels = $reloop->contacts->channels->list(new ListChannelsParams(page: 1, limit: 10));
 $oneChannel = $reloop->contacts->channels->get('chn_123456789');
-$updatedChannel = $reloop->contacts->channels->update('chn_123456789', new UpdateChannelParams(
-    name: 'Marketing News',
-));
+$updatedChannel = $reloop->contacts->channels->update(
+    'chn_123456789',
+    parameters: ['name' => 'Marketing News'],
+);
 $reloop->contacts->channels->delete('chn_123456789');
 
-$reloop->contacts->channels->addContact('chn_123456789', new AddContactToChannelParams(
-    contact_id: 'cont_123456789',
-    subscription: SubscriptionStatus::OptIn,
-));
-$reloop->contacts->channels->updateSubscription('chn_123456789', new UpdateContactChannelParams(
-    contact_id: 'cont_123456789',
-    subscription: SubscriptionStatus::OptIn,
-));
+$reloop->contacts->channels->addContact(
+    'chn_123456789',
+    parameters: [
+        'contact_id' => 'cont_123456789',
+        'subscription' => 'opt_in',
+    ],
+);
+$reloop->contacts->channels->updateSubscription(
+    'chn_123456789',
+    parameters: [
+        'contact_id' => 'cont_123456789',
+        'subscription' => 'opt_in',
+    ],
+);
 ```
 
 ## License
