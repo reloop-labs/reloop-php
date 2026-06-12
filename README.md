@@ -16,57 +16,41 @@ composer require reloop/reloop-email
 
 ## Getting Started
 
-Initialize the client with your API key. You can find or generate your API key in the Reloop Dashboard.
+Install the SDK with Composer, then initialize the client with your API key:
+
+```bash
+composer require reloop/reloop-email
+```
 
 ```php
-require_once 'vendor/autoload.php';
-
-use Reloop\Reloop;
-
 $reloop = Reloop::client('rl_your_api_key_here');
 ```
 
 ## API Key Management
 
-The SDK supports full CRUD and lifecycle management operations for API Keys.
-
-### List API Keys
 ```php
-$response = $reloop->apiKeys->list(['page' => 1, 'limit' => 10]);
-print_r($response['apiKeys']); // Array of API keys
-print_r($response['total']); // Total count
-```
+$reloop = Reloop::client('rl_your_api_key_here');
 
-### Create an API Key
-```php
-$newKey = $reloop->apiKeys->create(['name' => 'Production Key']);
-echo $newKey['key']; // The actual secret key (only returned on creation or rotation)
-```
+$reloop->apiKeys->list(
+  options: [
+    'page' => 1,
+    'limit' => 10,
+  ],
+);
 
-### Get an API Key
-```php
-$key = $reloop->apiKeys->get('api_key_id_here');
-```
+$reloop->apiKeys->create(
+  parameters: [
+    'name' => 'Production Key',
+    'enabled' => true,
+    'rate_limit_enabled' => true,
+  ],
+);
 
-### Update an API Key
-```php
-$updatedKey = $reloop->apiKeys->update('api_key_id_here', ['name' => 'New Name']);
-```
-
-### Delete an API Key
-```php
+$reloop->apiKeys->get('api_key_id_here');
+$reloop->apiKeys->update('api_key_id_here', parameters: ['name' => 'New Name']);
 $reloop->apiKeys->delete('api_key_id_here');
-```
-
-### Lifecycle Operations
-```php
-// Rotate the secret of an API key while keeping the same ID
-$rotatedKey = $reloop->apiKeys->rotate('api_key_id_here');
-
-// Temporarily disable an API key
+$reloop->apiKeys->rotate('api_key_id_here');
 $reloop->apiKeys->disable('api_key_id_here');
-
-// Re-enable an API key
 $reloop->apiKeys->enable('api_key_id_here');
 ```
 
@@ -79,22 +63,14 @@ Manage contacts, custom properties, groups, and channels via `$reloop->contacts`
 ```php
 $reloop = Reloop::client('re_123456789');
 
-$contact = $reloop->contacts->create(
-    parameters: [
-        'email' => 'steve.wozniak@gmail.com',
-        'first_name' => 'Steve',
-        'last_name' => 'Wozniak',
-        'unsubscribed' => false,
-        'properties' => [
-            'company' => 'Reloop',
-        ],
-        'group_ids' => ['grp_123456789'],
-    ],
+$reloop->contacts->create(
+  parameters: [
+    'email' => 'steve.wozniak@gmail.com',
+    'first_name' => 'Steve',
+    'last_name' => 'Wozniak',
+    'unsubscribed' => false,
+  ],
 );
-
-echo $contact->id;
-echo $contact->email;
-echo $contact->first_name;
 ```
 
 You can also pass Reloop-specific fields directly:

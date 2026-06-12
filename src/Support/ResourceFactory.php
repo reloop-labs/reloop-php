@@ -2,6 +2,8 @@
 
 namespace Reloop\Support;
 
+use Reloop\ApiKey;
+use Reloop\ApiKeyList;
 use Reloop\ChannelList;
 use Reloop\Contact;
 use Reloop\ContactChannel;
@@ -14,6 +16,27 @@ use Reloop\Resource;
 
 final class ResourceFactory
 {
+    /** @param array<string, mixed> $data */
+    public static function apiKey(array $data): ApiKey
+    {
+        return ApiKey::from(Parameters::forResponse($data));
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function apiKeyList(array $data): ApiKeyList
+    {
+        $normalized = Parameters::forResponse($data);
+
+        if (isset($normalized['api_keys']) && is_array($normalized['api_keys'])) {
+            $normalized['api_keys'] = array_map(
+                static fn (array $apiKey): ApiKey => ApiKey::from(Parameters::forResponse($apiKey)),
+                $normalized['api_keys'],
+            );
+        }
+
+        return ApiKeyList::from($normalized);
+    }
+
     /** @param array<string, mixed> $data */
     public static function contact(array $data): Contact
     {

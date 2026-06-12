@@ -16,6 +16,7 @@ final class Parameters
         'property_name' => 'propertyName',
         'property_type' => 'propertyType',
         'contact_id' => 'contact_id',
+        'rate_limit_enabled' => 'rateLimitEnabled',
     ];
 
     /**

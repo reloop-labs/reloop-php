@@ -2,110 +2,78 @@
 
 namespace Reloop\Services;
 
-use Reloop\ReloopClient;
 use GuzzleHttp\RequestOptions;
+use Reloop\ApiKey;
+use Reloop\ApiKeyList;
+use Reloop\ReloopClient;
+use Reloop\Support\Parameters;
+use Reloop\Support\ResourceFactory;
 
 class ApiKeyService
 {
-    private ReloopClient $client;
-
-    public function __construct(ReloopClient $client)
+    public function __construct(private ReloopClient $client)
     {
-        $this->client = $client;
     }
 
-    /**
-     * Create a new API key
-     *
-     * @param array $params ['name' => string]
-     * @return array
-     */
-    public function create(array $params): array
+    public function create(array $parameters): ApiKey
     {
-        return $this->client->request('POST', '/api/api-key/v1/', [
-            RequestOptions::JSON => $params,
+        $data = $this->client->request('POST', '/api/api-key/v1/', [
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
+
+        return ResourceFactory::apiKey($data);
     }
 
-    /**
-     * List API keys
-     *
-     * @param array $params ['page' => int, 'limit' => int, 'enabled' => bool, 'userId' => string, 'q' => string]
-     * @return array
-     */
-    public function list(array $params = []): array
+    public function list(array $options = []): ApiKeyList
     {
-        return $this->client->request('GET', '/api/api-key/v1/', [
-            RequestOptions::QUERY => $params,
+        $data = $this->client->request('GET', '/api/api-key/v1/', [
+            RequestOptions::QUERY => Parameters::forQuery($options),
         ]);
+
+        return ResourceFactory::apiKeyList($data);
     }
 
-    /**
-     * Get an API key by ID
-     *
-     * @param string $id
-     * @return array
-     */
-    public function get(string $id): array
+    public function get(string $id): ApiKey
     {
-        return $this->client->request('GET', "/api/api-key/v1/{$id}");
+        $data = $this->client->request('GET', "/api/api-key/v1/{$id}");
+
+        return ResourceFactory::apiKey($data);
     }
 
-    /**
-     * Update an API key
-     *
-     * @param string $id
-     * @param array $params ['name' => string]
-     * @return array
-     */
-    public function update(string $id, array $params): array
+    public function update(string $id, array $parameters): ApiKey
     {
-        return $this->client->request('PATCH', "/api/api-key/v1/{$id}", [
-            RequestOptions::JSON => $params,
+        $data = $this->client->request('PATCH', "/api/api-key/v1/{$id}", [
+            RequestOptions::JSON => Parameters::forRequest($parameters),
         ]);
+
+        return ResourceFactory::apiKey($data);
     }
 
-    /**
-     * Delete an API key
-     *
-     * @param string $id
-     * @return array
-     */
-    public function delete(string $id): array
+    public function delete(string $id): ApiKey
     {
-        return $this->client->request('DELETE', "/api/api-key/v1/{$id}");
+        $data = $this->client->request('DELETE', "/api/api-key/v1/{$id}");
+
+        return ResourceFactory::apiKey($data);
     }
 
-    /**
-     * Rotate an API key
-     *
-     * @param string $id
-     * @return array
-     */
-    public function rotate(string $id): array
+    public function rotate(string $id): ApiKey
     {
-        return $this->client->request('POST', "/api/api-key/v1/rotate/{$id}");
+        $data = $this->client->request('POST', "/api/api-key/v1/rotate/{$id}");
+
+        return ResourceFactory::apiKey($data);
     }
 
-    /**
-     * Enable an API key
-     *
-     * @param string $id
-     * @return array
-     */
-    public function enable(string $id): array
+    public function enable(string $id): ApiKey
     {
-        return $this->client->request('POST', "/api/api-key/v1/enable/{$id}");
+        $data = $this->client->request('POST', "/api/api-key/v1/enable/{$id}");
+
+        return ResourceFactory::apiKey($data);
     }
 
-    /**
-     * Disable an API key
-     *
-     * @param string $id
-     * @return array
-     */
-    public function disable(string $id): array
+    public function disable(string $id): ApiKey
     {
-        return $this->client->request('POST', "/api/api-key/v1/disable/{$id}");
+        $data = $this->client->request('POST', "/api/api-key/v1/disable/{$id}");
+
+        return ResourceFactory::apiKey($data);
     }
 }
