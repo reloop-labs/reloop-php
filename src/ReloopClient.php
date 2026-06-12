@@ -25,7 +25,6 @@ class ReloopClient
             'base_uri' => $this->baseUrl,
             'headers' => [
                 'x-api-key' => $this->apiKey,
-                'Authorization' => 'Bearer ' . $this->apiKey,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
             ],

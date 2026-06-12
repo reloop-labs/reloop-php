@@ -3,10 +3,12 @@
 namespace Reloop;
 
 use Reloop\Services\ApiKeyService;
+use Reloop\Services\ContactsService;
 
 class Reloop
 {
     public ApiKeyService $apiKeys;
+    public ContactsService $contacts;
     private ReloopClient $client;
 
     /**
@@ -19,5 +21,6 @@ class Reloop
     {
         $this->client = new ReloopClient($apiKey, $baseUrl);
         $this->apiKeys = new ApiKeyService($this->client);
+        $this->contacts = new ContactsService($this->client);
     }
 }
