@@ -56,6 +56,18 @@ final class Parameters
     }
 
     /**
+     * @param array<string, mixed> $parameters
+     * @return array<string, mixed>
+     */
+    public static function forSnakeRequest(array $parameters): array
+    {
+        return array_filter(
+            $parameters,
+            static fn (mixed $value): bool => $value !== null,
+        );
+    }
+
+    /**
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */

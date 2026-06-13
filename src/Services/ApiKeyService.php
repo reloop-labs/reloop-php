@@ -76,4 +76,9 @@ class ApiKeyService
 
         return ResourceFactory::apiKey($data);
     }
+
+    public function pause(string $id): ApiKey
+    {
+        return $this->disable($id);
+    }
 }

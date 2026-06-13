@@ -10,6 +10,12 @@ use Reloop\ContactChannel;
 use Reloop\ContactGroup;
 use Reloop\ContactList;
 use Reloop\ContactProperty;
+use Reloop\DnsRecord;
+use Reloop\Domain;
+use Reloop\DomainList;
+use Reloop\DomainNameservers;
+use Reloop\DomainStatus;
+use Reloop\ForwardDnsResponse;
 use Reloop\GroupList;
 use Reloop\PropertyList;
 use Reloop\Resource;
@@ -134,6 +140,60 @@ final class ResourceFactory
         }
 
         return ChannelList::from($normalized);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function dnsRecord(array $data): DnsRecord
+    {
+        return DnsRecord::from(Parameters::forResponse($data));
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function domain(array $data): Domain
+    {
+        $normalized = Parameters::forResponse($data);
+
+        if (isset($normalized['dns_records']) && is_array($normalized['dns_records'])) {
+            $normalized['dns_records'] = array_map(
+                static fn (array $record): DnsRecord => self::dnsRecord($record),
+                $normalized['dns_records'],
+            );
+        }
+
+        return Domain::from($normalized);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function domainList(array $data): DomainList
+    {
+        $normalized = Parameters::forResponse($data);
+
+        if (isset($normalized['domains']) && is_array($normalized['domains'])) {
+            $normalized['domains'] = array_map(
+                static fn (array $domain): Domain => self::domain($domain),
+                $normalized['domains'],
+            );
+        }
+
+        return DomainList::from($normalized);
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function domainStatus(array $data): DomainStatus
+    {
+        return DomainStatus::from(Parameters::forResponse($data));
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function domainNameservers(array $data): DomainNameservers
+    {
+        return DomainNameservers::from(Parameters::forResponse($data));
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function forwardDnsResponse(array $data): ForwardDnsResponse
+    {
+        return ForwardDnsResponse::from(Parameters::forResponse($data));
     }
 
     /** @param array<string, mixed> $data */

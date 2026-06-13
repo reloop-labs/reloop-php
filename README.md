@@ -51,6 +51,7 @@ $reloop->apiKeys->update('api_key_id_here', parameters: ['name' => 'New Name']);
 $reloop->apiKeys->delete('api_key_id_here');
 $reloop->apiKeys->rotate('api_key_id_here');
 $reloop->apiKeys->disable('api_key_id_here');
+$reloop->apiKeys->pause('api_key_id_here');
 $reloop->apiKeys->enable('api_key_id_here');
 ```
 
@@ -215,6 +216,54 @@ $reloop->contacts->channels->updateSubscription(
         'subscription' => 'opt_in',
     ],
 );
+```
+
+## Domains
+
+Add, verify, and manage sending domains via `$reloop->domain`. Request parameters use snake_case arrays; responses expose snake_case resource properties.
+
+```php
+$reloop = Reloop::client('rl_your_api_key_here');
+
+$domain = $reloop->domain->create(
+    parameters: [
+        'domain' => 'send.example.com',
+        'custom_return_path' => 'inbound',
+        'click_tracking' => true,
+        'open_tracking' => true,
+        'tls' => 'opportunistic',
+        'sending_email' => true,
+        'receiving_email' => true,
+    ],
+);
+
+$list = $reloop->domain->list(options: [
+    'page' => 1,
+    'limit' => 10,
+    'status' => 'active',
+]);
+
+$one = $reloop->domain->get('domain_123456789');
+
+$reloop->domain->update(
+    'domain_123456789',
+    parameters: [
+        'click_tracking' => false,
+        'sending_email' => true,
+    ],
+);
+
+$status = $reloop->domain->verify('domain_123456789');
+
+$reloop->domain->forwardDns(
+    'domain_123456789',
+    parameters: ['email' => 'admin@example.com'],
+);
+
+$nameservers = $reloop->domain->getNameservers('domain_123456789');
+echo $nameservers->dns_provider;
+
+$reloop->domain->delete('domain_123456789');
 ```
 
 ## License
