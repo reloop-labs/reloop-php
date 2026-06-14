@@ -5,12 +5,14 @@ namespace Reloop;
 use Reloop\Services\ApiKeyService;
 use Reloop\Services\ContactsService;
 use Reloop\Services\DomainService;
+use Reloop\Services\MailService;
 
 class Reloop
 {
     public ApiKeyService $apiKeys;
     public ContactsService $contacts;
     public DomainService $domain;
+    public MailService $mail;
     private ReloopClient $client;
 
     /**
@@ -27,5 +29,6 @@ class Reloop
         $this->apiKeys = new ApiKeyService($this->client);
         $this->contacts = new ContactsService($this->client);
         $this->domain = new DomainService($this->client);
+        $this->mail = new MailService($this->client);
     }
 }

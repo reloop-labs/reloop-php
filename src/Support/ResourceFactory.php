@@ -19,6 +19,7 @@ use Reloop\ForwardDnsResponse;
 use Reloop\GroupList;
 use Reloop\PropertyList;
 use Reloop\Resource;
+use Reloop\SendMailResponse;
 
 final class ResourceFactory
 {
@@ -194,6 +195,12 @@ final class ResourceFactory
     public static function forwardDnsResponse(array $data): ForwardDnsResponse
     {
         return ForwardDnsResponse::from(Parameters::forResponse($data));
+    }
+
+    /** @param array<string, mixed> $data */
+    public static function sendMail(array $data): SendMailResponse
+    {
+        return SendMailResponse::from(Parameters::forResponse($data));
     }
 
     /** @param array<string, mixed> $data */

@@ -1,6 +1,7 @@
 {
     "name": "reloop/reloop-email",
     "description": "Reloop PHP SDK",
+    "version": "1.8.0",
     "type": "library",
     "require": {
         "php": "^8.1",
