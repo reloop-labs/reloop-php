@@ -95,6 +95,8 @@ final class ContactsServiceTest extends TestCase
             ->willReturn(['id' => 'ch_1']);
 
         $service = new ContactsService($client);
-        $service->channels->addContact('ch_1', ['contact_id' => 'con_1']);
+        $result = $service->channels->addContact('ch_1', ['contact_id' => 'con_1']);
+
+        $this->assertSame('ch_1', $result->id);
     }
 }

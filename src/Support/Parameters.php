@@ -15,7 +15,7 @@ final class Parameters
         'channel_id' => 'channelId',
         'property_name' => 'propertyName',
         'property_type' => 'propertyType',
-        'contact_id' => 'contact_id',
+        'contact_id' => 'contactId',
         'rate_limit_enabled' => 'rateLimitEnabled',
     ];
 
