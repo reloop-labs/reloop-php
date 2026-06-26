@@ -1,7 +1,7 @@
 {
     "name": "reloop/reloop-email",
     "description": "Reloop PHP SDK",
-    "version": "1.8.0",
+    "version": "0.1.0",
     "license": "Apache-2.0",
     "type": "library",
     "require": {
