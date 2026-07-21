@@ -2,87 +2,107 @@
 
 namespace Reloop\Services;
 
-use GuzzleHttp\RequestOptions;
-use Reloop\Domain;
-use Reloop\DomainList;
-use Reloop\DomainNameservers;
-use Reloop\DomainStatus;
-use Reloop\ForwardDnsResponse;
 use Reloop\ReloopClient;
-use Reloop\Support\Parameters;
-use Reloop\Support\ResourceFactory;
+use Reloop\Support\Validators;
 
 class DomainService
 {
+    private const DOMAIN_V1 = '/api/domain/v1';
+
     public function __construct(private ReloopClient $client)
     {
     }
 
-    public function create(array $parameters): Domain
+    /**
+     * @param array{
+     *   domain?: string,
+     *   click_tracking?: bool,
+     *   open_tracking?: bool,
+     *   tls?: string,
+     *   sending_email?: bool,
+     *   receiving_email?: bool
+     * } $params
+     * @return array<string, mixed>
+     */
+    public function create(array $params): array
     {
-        $data = $this->client->request('POST', '/api/domain/v1/create', [
-            RequestOptions::JSON => Parameters::forSnakeRequest($parameters),
-        ]);
+        $domain = Validators::requireNonEmptyString($params['domain'] ?? null, 'domain');
+        $body = array_filter([
+            'domain' => $domain,
+            'click_tracking' => $params['click_tracking'] ?? null,
+            'open_tracking' => $params['open_tracking'] ?? null,
+            'tls' => $params['tls'] ?? null,
+            'sending_email' => $params['sending_email'] ?? null,
+            'receiving_email' => $params['receiving_email'] ?? null,
+        ], static fn ($v) => $v !== null);
 
-        return ResourceFactory::domain($data);
+        return $this->client->request('POST', self::DOMAIN_V1 . '/create', $body) ?? [];
     }
 
-    public function list(array $options = []): DomainList
+    /**
+     * @param array{page?: int, limit?: int, q?: string, status?: string}|null $params
+     * @return array<string, mixed>
+     */
+    public function list(?array $params = null): array
     {
-        $data = $this->client->request('GET', '/api/domain/v1/list', [
-            RequestOptions::QUERY => Parameters::forQuery($options),
-        ]);
+        $query = [];
+        if ($params !== null) {
+            if (isset($params['page'])) {
+                Validators::requirePage((int) $params['page'], 'page');
+                $query['page'] = (int) $params['page'];
+            }
+            if (isset($params['limit'])) {
+                Validators::requireLimit((int) $params['limit'], 1, 100, 'limit');
+                $query['limit'] = (int) $params['limit'];
+            }
+            if (isset($params['q'])) {
+                $query['q'] = $params['q'];
+            }
+            if (isset($params['status'])) {
+                $query['status'] = $params['status'];
+            }
+        }
 
-        return ResourceFactory::domainList($data);
+        return $this->client->request('GET', self::DOMAIN_V1 . '/list', null, $query) ?? [];
     }
 
-    public function get(string $domainId): Domain
+    /** @return array<string, mixed> */
+    public function get(string $domainId): array
     {
-        $data = $this->client->request('GET', "/api/domain/v1/{$domainId}");
+        $id = Validators::requireNonEmptyString($domainId, 'domainId');
 
-        return ResourceFactory::domain($data);
+        return $this->client->request('GET', self::DOMAIN_V1 . '/' . $id) ?? [];
     }
 
-    public function getNameservers(string $domainId): DomainNameservers
+    /**
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>
+     */
+    public function update(string $domainId, array $params = []): array
     {
-        $data = $this->client->request('GET', "/api/domain/v1/nameservers/{$domainId}");
+        $id = Validators::requireNonEmptyString($domainId, 'domainId');
+        $body = array_filter([
+            'click_tracking' => $params['click_tracking'] ?? null,
+            'open_tracking' => $params['open_tracking'] ?? null,
+            'sending_email' => $params['sending_email'] ?? null,
+            'receiving_email' => $params['receiving_email'] ?? null,
+            'tls' => $params['tls'] ?? null,
+        ], static fn ($v) => $v !== null);
 
-        return ResourceFactory::domainNameservers($data);
+        return $this->client->request('PATCH', self::DOMAIN_V1 . '/' . $id, $body) ?? [];
     }
 
-    public function update(string $domainId, array $parameters): Domain
+    public function delete(string $domainId): void
     {
-        $data = $this->client->request('PATCH', "/api/domain/v1/{$domainId}", [
-            RequestOptions::JSON => Parameters::forSnakeRequest($parameters),
-        ]);
-
-        return ResourceFactory::domain($data);
+        $id = Validators::requireNonEmptyString($domainId, 'domainId');
+        $this->client->request('DELETE', self::DOMAIN_V1 . '/' . $id);
     }
 
-    public function delete(string $domainId): Domain
+    /** @return array<string, mixed> */
+    public function verify(string $domainId): array
     {
-        $data = $this->client->request('DELETE', "/api/domain/v1/{$domainId}");
+        $id = Validators::requireNonEmptyString($domainId, 'domainId');
 
-        return ResourceFactory::domain($data);
-    }
-
-    public function verify(string $domainId): DomainStatus
-    {
-        $data = $this->client->request('POST', "/api/domain/v1/verify/{$domainId}");
-
-        return ResourceFactory::domainStatus($data);
-    }
-
-    public function forwardDns(string $domainId, array $parameters): ForwardDnsResponse
-    {
-        $data = $this->client->request(
-            'POST',
-            "/api/domain/v1/verify/{$domainId}/forward-dns",
-            [
-                RequestOptions::JSON => Parameters::forSnakeRequest($parameters),
-            ],
-        );
-
-        return ResourceFactory::forwardDnsResponse($data);
+        return $this->client->request('POST', self::DOMAIN_V1 . '/verify/' . $id, []) ?? [];
     }
 }
