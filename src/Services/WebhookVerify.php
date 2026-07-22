@@ -35,9 +35,13 @@ final class WebhookVerify
             throw new WebhookSignatureException('Webhook payload is required');
         }
 
-        $tolerance = $params['tolerance'] ?? null;
-        if ($tolerance === null || $tolerance === 0) {
+        $tolerance = array_key_exists('tolerance', $params)
+            ? $params['tolerance']
+            : null;
+        if ($tolerance === null) {
             $tolerance = self::DEFAULT_TOLERANCE_SECONDS;
+        } else {
+            $tolerance = (int) $tolerance;
         }
 
         $signatureHeader = self::getHeader($params['headers'] ?? null, self::WEBHOOK_SIGNATURE_HEADER);

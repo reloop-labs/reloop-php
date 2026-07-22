@@ -46,7 +46,9 @@ class ReloopClientTest extends TestCase
             $this->fail('expected ReloopApiException');
         } catch (ReloopApiException $e) {
             $this->assertSame(401, $e->status);
+            $this->assertSame('Unauthorized', $e->statusText);
             $this->assertSame('bad key', $e->body['message']);
+            $this->assertStringNotContainsString('401 401', $e->getMessage());
         }
 
         $req = $factory->lastRequest();

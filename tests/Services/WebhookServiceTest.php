@@ -187,6 +187,46 @@ JSON;
         $this->assertSame(0, $factory->hits());
     }
 
+    public function testUpdateAllowsNullCustomHeadersAndFilteringOptions(): void
+    {
+        $factory = new TestClientFactory();
+        $factory->respond(200, self::WEBHOOK_FIXTURE);
+        $res = $factory->client()->webhook->update('wh_1', [
+            'customHeaders' => null,
+            'filteringOptions' => null,
+        ]);
+        $req = $factory->lastRequest();
+        $this->assertSame('PATCH', $req->getMethod());
+        $body = json_decode((string) $req->getBody(), true);
+        $this->assertArrayHasKey('customHeaders', $body);
+        $this->assertNull($body['customHeaders']);
+        $this->assertArrayHasKey('filteringOptions', $body);
+        $this->assertNull($body['filteringOptions']);
+        $this->assertSame('wh_123456789', $res['id']);
+    }
+
+    public function testListTreatsEmptyStatusAsUnset(): void
+    {
+        $factory = new TestClientFactory();
+        $factory->respond(200, ['object' => 'list', 'data' => [], 'total' => 0, 'page' => 1, 'limit' => 10]);
+        $factory->client()->webhook->list(['status' => '']);
+        $req = $factory->lastRequest();
+        $this->assertSame('', $req->getUri()->getQuery());
+    }
+
+    public function testVerifyHonorsExplicitZeroTolerance(): void
+    {
+        $header = $this->signPayload(self::SECRET, (string) (time() - 1), self::PAYLOAD);
+        $this->expectException(WebhookSignatureException::class);
+        $this->expectExceptionMessageMatches('/tolerance/i');
+        WebhookVerify::verify([
+            'payload' => self::PAYLOAD,
+            'headers' => [WebhookVerify::WEBHOOK_SIGNATURE_HEADER => $header],
+            'secret' => self::SECRET,
+            'tolerance' => 0,
+        ]);
+    }
+
     private function signPayload(string $secret, string $timestamp, string $payload): string
     {
         $signature = hash_hmac('sha256', $timestamp . '.' . $payload, $secret);

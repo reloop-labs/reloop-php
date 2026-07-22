@@ -15,7 +15,7 @@ class DomainService
 
     /**
      * @param array{
-     *   domain?: string,
+     *   domain: string,
      *   click_tracking?: bool,
      *   open_tracking?: bool,
      *   tls?: string,

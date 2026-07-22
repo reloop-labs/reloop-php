@@ -54,6 +54,7 @@ class ReloopClient
     public function request(string $method, string $path, ?array $body = null, ?array $query = null): ?array
     {
         $options = [
+            'http_errors' => false,
             'headers' => [
                 'x-api-key' => $this->apiKey,
                 'Content-Type' => 'application/json',
@@ -84,7 +85,7 @@ class ReloopClient
                 if (!is_array($errorBody)) {
                     $errorBody = ['message' => $raw !== '' ? $raw : $response->getReasonPhrase()];
                 }
-                throw new ReloopApiException($statusCode, (string) $statusCode, $errorBody);
+                throw new ReloopApiException($statusCode, $response->getReasonPhrase(), $errorBody);
             }
 
             if ($statusCode === 204 || $raw === '') {

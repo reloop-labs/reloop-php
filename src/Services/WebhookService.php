@@ -239,9 +239,9 @@ class WebhookService
             $body['status'] = $params['status'];
         }
         if (array_key_exists('customHeaders', $params)) {
-            if (!is_array($params['customHeaders'])) {
+            if ($params['customHeaders'] !== null && !is_array($params['customHeaders'])) {
                 throw new ReloopValidationException(
-                    'update customHeaders must be an object when provided.',
+                    'update customHeaders must be an object or null when provided.',
                     'customHeaders',
                 );
             }
@@ -284,9 +284,9 @@ class WebhookService
             $body['retryBackoffMultiplier'] = $params['retryBackoffMultiplier'];
         }
         if (array_key_exists('filteringOptions', $params)) {
-            if (!is_array($params['filteringOptions'])) {
+            if ($params['filteringOptions'] !== null && !is_array($params['filteringOptions'])) {
                 throw new ReloopValidationException(
-                    'update filteringOptions must be an object when provided.',
+                    'update filteringOptions must be an object or null when provided.',
                     'filteringOptions',
                 );
             }
@@ -360,7 +360,7 @@ class WebhookService
             Validators::requireLimit((int) $params['limit'], 1, 100, 'limit');
             $query['limit'] = (int) $params['limit'];
         }
-        if (isset($params['status'])) {
+        if (isset($params['status']) && $params['status'] !== '') {
             self::requireWebhookStatus($params['status'], 'status');
             $query['status'] = $params['status'];
         }
