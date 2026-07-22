@@ -2,83 +2,107 @@
 
 namespace Reloop\Services;
 
-use GuzzleHttp\RequestOptions;
-use Reloop\ApiKey;
-use Reloop\ApiKeyList;
 use Reloop\ReloopClient;
-use Reloop\Support\Parameters;
-use Reloop\Support\ResourceFactory;
+use Reloop\Support\Validators;
 
 class ApiKeyService
 {
+    private const API_KEY_V1 = '/api/api-key/v1';
+
     public function __construct(private ReloopClient $client)
     {
     }
 
-    public function create(array $parameters): ApiKey
+    /**
+     * @param array{name?: string} $params
+     * @return array<string, mixed>
+     */
+    public function create(array $params): array
     {
-        $data = $this->client->request('POST', '/api/api-key/v1/', [
-            RequestOptions::JSON => Parameters::forRequest($parameters),
-        ]);
+        $name = Validators::requireApiKeyName($params['name'] ?? null, 'name');
 
-        return ResourceFactory::apiKey($data);
+        return $this->client->request('POST', self::API_KEY_V1 . '/', ['name' => $name]) ?? [];
     }
 
-    public function list(array $options = []): ApiKeyList
+    /**
+     * @param array{page?: int, limit?: int, enabled?: bool, userId?: string, q?: string}|null $params
+     * @return array<string, mixed>
+     */
+    public function list(?array $params = null): array
     {
-        $data = $this->client->request('GET', '/api/api-key/v1/', [
-            RequestOptions::QUERY => Parameters::forQuery($options),
-        ]);
+        $query = [];
+        if ($params !== null) {
+            if (isset($params['page'])) {
+                Validators::requirePage((int) $params['page'], 'page');
+                $query['page'] = (int) $params['page'];
+            }
+            if (isset($params['limit'])) {
+                Validators::requireLimit((int) $params['limit'], 1, 100, 'limit');
+                $query['limit'] = (int) $params['limit'];
+            }
+            if (array_key_exists('enabled', $params)) {
+                $query['enabled'] = $params['enabled'] ? 'true' : 'false';
+            }
+            if (isset($params['userId'])) {
+                $query['userId'] = $params['userId'];
+            }
+            if (isset($params['q'])) {
+                $query['q'] = $params['q'];
+            }
+        }
 
-        return ResourceFactory::apiKeyList($data);
+        return $this->client->request('GET', self::API_KEY_V1 . '/', null, $query) ?? [];
     }
 
-    public function get(string $id): ApiKey
+    /** @return array<string, mixed> */
+    public function get(string $apiKeyId): array
     {
-        $data = $this->client->request('GET', "/api/api-key/v1/{$id}");
+        $id = Validators::requireApiKeyId($apiKeyId, 'apiKeyId');
 
-        return ResourceFactory::apiKey($data);
+        return $this->client->request('GET', self::API_KEY_V1 . '/' . $id) ?? [];
     }
 
-    public function update(string $id, array $parameters): ApiKey
+    /**
+     * @param array{name?: string} $params
+     * @return array<string, mixed>
+     */
+    public function update(string $apiKeyId, array $params): array
     {
-        $data = $this->client->request('PATCH', "/api/api-key/v1/{$id}", [
-            RequestOptions::JSON => Parameters::forRequest($parameters),
-        ]);
+        $id = Validators::requireApiKeyId($apiKeyId, 'apiKeyId');
+        $name = Validators::requireApiKeyName($params['name'] ?? null, 'name');
 
-        return ResourceFactory::apiKey($data);
+        return $this->client->request('PATCH', self::API_KEY_V1 . '/' . $id, ['name' => $name]) ?? [];
     }
 
-    public function delete(string $id): ApiKey
+    /** @return array<string, mixed> */
+    public function delete(string $apiKeyId): array
     {
-        $data = $this->client->request('DELETE', "/api/api-key/v1/{$id}");
+        $id = Validators::requireApiKeyId($apiKeyId, 'apiKeyId');
 
-        return ResourceFactory::apiKey($data);
+        return $this->client->request('DELETE', self::API_KEY_V1 . '/' . $id) ?? [];
     }
 
-    public function rotate(string $id): ApiKey
+    /** @return array<string, mixed> */
+    public function rotate(string $apiKeyId): array
     {
-        $data = $this->client->request('POST', "/api/api-key/v1/rotate/{$id}");
+        $id = Validators::requireApiKeyId($apiKeyId, 'apiKeyId');
 
-        return ResourceFactory::apiKey($data);
+        return $this->client->request('POST', self::API_KEY_V1 . '/rotate/' . $id, []) ?? [];
     }
 
-    public function enable(string $id): ApiKey
+    /** @return array<string, mixed> */
+    public function enable(string $apiKeyId): array
     {
-        $data = $this->client->request('POST', "/api/api-key/v1/enable/{$id}");
+        $id = Validators::requireApiKeyId($apiKeyId, 'apiKeyId');
 
-        return ResourceFactory::apiKey($data);
+        return $this->client->request('POST', self::API_KEY_V1 . '/enable/' . $id, []) ?? [];
     }
 
-    public function disable(string $id): ApiKey
+    /** @return array<string, mixed> */
+    public function disable(string $apiKeyId): array
     {
-        $data = $this->client->request('POST', "/api/api-key/v1/disable/{$id}");
+        $id = Validators::requireApiKeyId($apiKeyId, 'apiKeyId');
 
-        return ResourceFactory::apiKey($data);
-    }
-
-    public function pause(string $id): ApiKey
-    {
-        return $this->disable($id);
+        return $this->client->request('POST', self::API_KEY_V1 . '/disable/' . $id, []) ?? [];
     }
 }

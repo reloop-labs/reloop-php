@@ -3,8 +3,9 @@
 namespace Reloop;
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\RequestOptions;
+use Reloop\Exceptions\ReloopApiException;
 
 class ReloopClient
 {
@@ -12,55 +13,92 @@ class ReloopClient
     private string $baseUrl;
     private Client $httpClient;
 
-    public function __construct(string $apiKey, string $baseUrl = 'https://reloop.sh')
+    public function __construct(string $apiKey, string $baseUrl = 'https://reloop.sh', ?Client $httpClient = null)
     {
-        if (empty($apiKey)) {
-            throw new \InvalidArgumentException('Reloop SDK requires an apiKey.');
+        $trimmed = trim($apiKey);
+        if ($trimmed === '') {
+            throw new \InvalidArgumentException('Reloop SDK requires an APIKey');
         }
 
-        $this->apiKey = $apiKey;
-        $this->baseUrl = $baseUrl;
+        $this->apiKey = $trimmed;
+        $base = rtrim($baseUrl === '' ? 'https://reloop.sh' : $baseUrl, '/');
+        $this->baseUrl = $base === '' ? 'https://reloop.sh' : $base;
 
-        $this->httpClient = new Client([
-            'base_uri' => $this->baseUrl,
+        $this->httpClient = $httpClient ?? new Client([
+            'base_uri' => $this->baseUrl . '/',
             'headers' => [
                 'x-api-key' => $this->apiKey,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
             ],
-            // We handle exceptions manually for unified error tracking
             'http_errors' => false,
+            'timeout' => 30,
         ]);
     }
 
-    /**
-     * Perform an HTTP request
-     *
-     * @param string $method HTTP Method (GET, POST, etc.)
-     * @param string $path Endpoint path
-     * @param array $options Guzzle request options
-     * @return array|null Parsed JSON response or null for 204
-     * @throws \Exception
-     */
-    public function request(string $method, string $path, array $options = []): ?array
+    public function getBaseUrl(): string
     {
+        return $this->baseUrl;
+    }
+
+    public function getApiKey(): string
+    {
+        return $this->apiKey;
+    }
+
+    /**
+     * @param array<string, mixed>|null $body
+     * @param array<string, scalar|null>|null $query
+     * @return array<string, mixed>|null
+     */
+    public function request(string $method, string $path, ?array $body = null, ?array $query = null): ?array
+    {
+        $options = [
+            'http_errors' => false,
+            'headers' => [
+                'x-api-key' => $this->apiKey,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ],
+        ];
+
+        if ($body !== null) {
+            $options[RequestOptions::JSON] = $body;
+        }
+        if ($query !== null) {
+            $filtered = array_filter(
+                $query,
+                static fn ($v) => $v !== null,
+            );
+            if ($filtered !== []) {
+                $options[RequestOptions::QUERY] = $filtered;
+            }
+        }
+
         try {
-            $response = $this->httpClient->request($method, $path, $options);
+            $response = $this->httpClient->request($method, ltrim($path, '/'), $options);
             $statusCode = $response->getStatusCode();
+            $raw = (string) $response->getBody();
 
             if ($statusCode >= 400) {
-                $errorBody = json_decode($response->getBody()->getContents(), true) ?? [];
-                $message = $errorBody['message'] ?? $response->getReasonPhrase();
-                throw new \Exception("Reloop API Error ($statusCode): $message");
+                $errorBody = json_decode($raw, true);
+                if (!is_array($errorBody)) {
+                    $errorBody = ['message' => $raw !== '' ? $raw : $response->getReasonPhrase()];
+                }
+                throw new ReloopApiException($statusCode, $response->getReasonPhrase(), $errorBody);
             }
 
-            if ($statusCode === 204) {
+            if ($statusCode === 204 || $raw === '') {
                 return null;
             }
 
-            return json_decode($response->getBody()->getContents(), true);
-        } catch (RequestException $e) {
-            throw new \Exception("Reloop Network Error: " . $e->getMessage(), 0, $e);
+            $decoded = json_decode($raw, true);
+
+            return is_array($decoded) ? $decoded : null;
+        } catch (ReloopApiException $e) {
+            throw $e;
+        } catch (GuzzleException $e) {
+            throw new ReloopApiException(0, 'Network Error', ['message' => $e->getMessage()], $e);
         }
     }
 }
