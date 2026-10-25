@@ -32,7 +32,7 @@ class ReloopClientTest extends TestCase
         $this->assertNotNull($reloop->contacts);
         $this->assertNotNull($reloop->webhook);
         $this->assertNotNull($reloop->inbox);
-        $this->assertSame('2.0.0', Version::VERSION);
+        $this->assertSame('2.0.1', Version::VERSION);
     }
 
     public function testAuthHeaderAndApiError(): void

@@ -70,8 +70,11 @@ Idiomatic PHP exceptions — aligned with the Java SDK and the Node/Python Resul
 ```php
 use Reloop\Services\WebhookVerify;
 
+// $payload: the raw request body; $signature: the Reloop-Signature request header
 $event = WebhookVerify::constructEvent($payload, $signature, $secret, 300);
 // or $reloop->webhook->verify([...])
+
+// $event['type'], $event['created_at'], $event['data']
 ```
 
 ## License

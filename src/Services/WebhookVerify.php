@@ -7,7 +7,13 @@ use Reloop\Exceptions\WebhookSignatureException;
 /** HMAC-SHA256 webhook signature verification. */
 final class WebhookVerify
 {
-    public const WEBHOOK_SIGNATURE_HEADER = 'x-webhook-signature';
+    /** Header Reloop signs every delivery with: t=<unix>,v1=<hex>. */
+    public const WEBHOOK_SIGNATURE_HEADER = 'Reloop-Signature';
+    public const WEBHOOK_TIMESTAMP_HEADER = 'Reloop-Timestamp';
+    public const WEBHOOK_ID_HEADER = 'Reloop-Id';
+
+    /** Header name used before 2.0.1. Still accepted as a fallback. */
+    private const LEGACY_WEBHOOK_SIGNATURE_HEADER = 'x-webhook-signature';
     public const DEFAULT_TOLERANCE_SECONDS = 300;
 
     private function __construct()
@@ -21,7 +27,7 @@ final class WebhookVerify
      *   secret: string,
      *   tolerance?: int|null
      * } $params
-     * @return array{id: string, event: string, payload: array<string, mixed>, timestamp: float}
+     * @return array{id: string, type: string, created_at: string, data: array<string, mixed>, event: string, payload: array<string, mixed>, timestamp: float}
      */
     public static function verify(array $params): array
     {
@@ -46,6 +52,9 @@ final class WebhookVerify
 
         $signatureHeader = self::getHeader($params['headers'] ?? null, self::WEBHOOK_SIGNATURE_HEADER);
         if ($signatureHeader === null || $signatureHeader === '') {
+            $signatureHeader = self::getHeader($params['headers'] ?? null, self::LEGACY_WEBHOOK_SIGNATURE_HEADER);
+        }
+        if ($signatureHeader === null || $signatureHeader === '') {
             throw new WebhookSignatureException('Missing ' . self::WEBHOOK_SIGNATURE_HEADER . ' header');
         }
 
@@ -68,7 +77,7 @@ final class WebhookVerify
     }
 
     /**
-     * @return array{id: string, event: string, payload: array<string, mixed>, timestamp: float}
+     * @return array{id: string, type: string, created_at: string, data: array<string, mixed>, event: string, payload: array<string, mixed>, timestamp: float}
      */
     public static function constructEvent(
         string $payload,
@@ -135,7 +144,7 @@ final class WebhookVerify
 
         if ($timestamp === null || $timestamp === '' || $signatures === []) {
             throw new WebhookSignatureException(
-                'Invalid X-Webhook-Signature header: expected t= and v1= values',
+                'Invalid ' . self::WEBHOOK_SIGNATURE_HEADER . ' header: expected t= and v1= values',
             );
         }
 
@@ -168,12 +177,12 @@ final class WebhookVerify
     private static function verifyTimestamp(string $timestamp, int $tolerance): void
     {
         if (!is_numeric($timestamp)) {
-            throw new WebhookSignatureException('Invalid timestamp in X-Webhook-Signature header');
+            throw new WebhookSignatureException('Invalid timestamp in ' . self::WEBHOOK_SIGNATURE_HEADER . ' header');
         }
 
         $ts = (float) $timestamp;
         if (!is_finite($ts)) {
-            throw new WebhookSignatureException('Invalid timestamp in X-Webhook-Signature header');
+            throw new WebhookSignatureException('Invalid timestamp in ' . self::WEBHOOK_SIGNATURE_HEADER . ' header');
         }
 
         $age = abs(time() - (int) floor($ts));
@@ -185,7 +194,7 @@ final class WebhookVerify
     }
 
     /**
-     * @return array{id: string, event: string, payload: array<string, mixed>, timestamp: float}
+     * @return array{id: string, type: string, created_at: string, data: array<string, mixed>, event: string, payload: array<string, mixed>, timestamp: float}
      */
     private static function parseWebhookEvent(string $raw): array
     {
@@ -204,29 +213,44 @@ final class WebhookVerify
             throw new WebhookSignatureException('Webhook payload missing required field: id');
         }
 
-        $event = $record['event'] ?? null;
-        if (!is_string($event) || $event === '') {
-            throw new WebhookSignatureException('Webhook payload missing required field: event');
+        // Production envelope: {id, type, created_at, data}.
+        // Legacy envelope (pre-2.0.1 fixtures): {id, event, payload, timestamp}.
+        $type = $record['type'] ?? $record['event'] ?? null;
+        if (!is_string($type) || $type === '') {
+            throw new WebhookSignatureException('Webhook payload missing required field: type');
         }
 
-        $payload = $record['payload'] ?? null;
-        if (!is_array($payload)) {
-            throw new WebhookSignatureException('Webhook payload missing required field: payload');
+        $data = $record['data'] ?? $record['payload'] ?? null;
+        if (!is_array($data)) {
+            throw new WebhookSignatureException('Webhook payload missing required field: data');
         }
 
-        $timestamp = $record['timestamp'] ?? null;
-        if (!is_int($timestamp) && !is_float($timestamp)) {
-            throw new WebhookSignatureException('Webhook payload missing required field: timestamp');
-        }
-        $ts = (float) $timestamp;
-        if (!is_finite($ts)) {
-            throw new WebhookSignatureException('Webhook payload missing required field: timestamp');
+        $createdAt = $record['created_at'] ?? null;
+        $legacyTimestamp = $record['timestamp'] ?? null;
+        if (is_string($createdAt) && $createdAt !== '') {
+            try {
+                $at = new \DateTimeImmutable($createdAt);
+            } catch (\Exception) {
+                throw new WebhookSignatureException('Webhook payload has an invalid created_at');
+            }
+            $ts = (float) $at->format('U.v');
+        } elseif ((is_int($legacyTimestamp) || is_float($legacyTimestamp)) && is_finite((float) $legacyTimestamp)) {
+            $ts = (float) $legacyTimestamp;
+            $createdAt = \DateTimeImmutable::createFromFormat('U.u', sprintf('%.6F', $ts))
+                ->setTimezone(new \DateTimeZone('UTC'))
+                ->format('Y-m-d\\TH:i:s.v\\Z');
+        } else {
+            throw new WebhookSignatureException('Webhook payload missing required field: created_at');
         }
 
         return [
             'id' => $id,
-            'event' => $event,
-            'payload' => $payload,
+            'type' => $type,
+            'created_at' => $createdAt,
+            'data' => $data,
+            // Deprecated aliases kept for callers of 2.0.0.
+            'event' => $type,
+            'payload' => $data,
             'timestamp' => $ts,
         ];
     }

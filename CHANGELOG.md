@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.1
+
+- Fix: `WebhookVerify` reads the `Reloop-Signature` header Reloop actually sends (`x-webhook-signature` still works as a fallback). `WEBHOOK_SIGNATURE_HEADER` is now `Reloop-Signature`; new `WEBHOOK_TIMESTAMP_HEADER` and `WEBHOOK_ID_HEADER` are `Reloop-Timestamp` and `Reloop-Id`.
+- Fix: verified events follow the production envelope (`id`, `type`, `created_at`, `data`). `event`, `payload` and `timestamp` are still returned but deprecated.
+- Fix: `ReloopApiException::$body` documents and normalises `fix` (the field the API returns). `tip` is kept as a deprecated mirror of `fix`.
+
 ## 2.0.0
 
 Breaking rewrite for Node SDK parity (version aligned with Node/Python/Go/Java `2.0.0`):

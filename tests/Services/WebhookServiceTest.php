@@ -227,6 +227,81 @@ JSON;
         ]);
     }
 
+    private const PRODUCTION_PAYLOAD = '{"id":"whev_01abc","type":"email.received","created_at":"2026-10-26T12:00:00.000Z","data":{"email_id":"in_1","subject":"Hello"}}';
+
+    public function testVerifyAcceptsProductionDelivery(): void
+    {
+        $this->assertSame('Reloop-Signature', WebhookVerify::WEBHOOK_SIGNATURE_HEADER);
+        $timestamp = (string) time();
+        $header = $this->signPayload(self::SECRET, $timestamp, self::PRODUCTION_PAYLOAD);
+
+        $event = WebhookVerify::verify([
+            'payload' => self::PRODUCTION_PAYLOAD,
+            'headers' => [
+                'reloop-signature' => $header,
+                'reloop-timestamp' => $timestamp,
+                'reloop-id' => 'whev_01abc',
+            ],
+            'secret' => self::SECRET,
+        ]);
+
+        $this->assertSame('whev_01abc', $event['id']);
+        $this->assertSame('email.received', $event['type']);
+        $this->assertSame('2026-10-26T12:00:00.000Z', $event['created_at']);
+        $this->assertSame('Hello', $event['data']['subject']);
+        $this->assertSame($event['type'], $event['event']);
+        $this->assertSame(1793016000.0, $event['timestamp']);
+    }
+
+    public function testVerifyAcceptsLegacyHeader(): void
+    {
+        $timestamp = (string) time();
+        $header = $this->signPayload(self::SECRET, $timestamp, self::PRODUCTION_PAYLOAD);
+
+        $event = WebhookVerify::verify([
+            'payload' => self::PRODUCTION_PAYLOAD,
+            'headers' => ['x-webhook-signature' => $header],
+            'secret' => self::SECRET,
+        ]);
+
+        $this->assertSame('email.received', $event['type']);
+    }
+
+    public function testLegacyEnvelopeGetsCreatedAt(): void
+    {
+        $timestamp = (string) time();
+        $header = $this->signPayload(self::SECRET, $timestamp, self::PAYLOAD);
+
+        $event = WebhookService::constructEvent(self::PAYLOAD, $header, self::SECRET, 300);
+        $this->assertSame('2025-01-01T00:00:00.000Z', $event['created_at']);
+    }
+
+    public function testVerifyRejectsTamperedProductionBody(): void
+    {
+        $timestamp = (string) time();
+        $header = $this->signPayload(self::SECRET, $timestamp, self::PRODUCTION_PAYLOAD);
+
+        $this->expectException(WebhookSignatureException::class);
+        WebhookService::constructEvent(str_replace('Hello', 'Hacked', self::PRODUCTION_PAYLOAD), $header, self::SECRET, 300);
+    }
+
+    public function testMissingHeaderNamesReloopSignature(): void
+    {
+        $this->expectException(WebhookSignatureException::class);
+        $this->expectExceptionMessage('Reloop-Signature');
+        WebhookVerify::verify(['payload' => self::PRODUCTION_PAYLOAD, 'headers' => [], 'secret' => self::SECRET]);
+    }
+
+    public function testApiExceptionBodyReadsFixAndLegacyTip(): void
+    {
+        $withFix = new ReloopApiException(403, 'Forbidden', ['message' => 'Nope', 'why' => 'Scope', 'fix' => 'Use another key']);
+        $this->assertSame('Use another key', $withFix->body['fix']);
+        $this->assertSame('Use another key', $withFix->body['tip']);
+
+        $withTip = new ReloopApiException(400, 'Bad Request', ['message' => 'x', 'tip' => 'Try again']);
+        $this->assertSame('Try again', $withTip->body['fix']);
+    }
+
     private function signPayload(string $secret, string $timestamp, string $payload): string
     {
         $signature = hash_hmac('sha256', $timestamp . '.' . $payload, $secret);
